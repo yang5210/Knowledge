@@ -1,15 +1,17 @@
-const CACHE_NAME = 'yellow-river-v5';
+const CACHE_NAME = 'yellow-river-v3';
 const urlsToCache = [
-  './',
+  '.',
   'index.html',
   'index.tsx',
   'manifest.json',
-  'icon.svg',
+  'icon-192x192.png',
+  'icon-512x512.png',
   'https://cdn.tailwindcss.com'
 ];
 
 self.addEventListener('install', event => {
-  self.skipWaiting(); // Force activate immediately
+  // Perform install steps
+  self.skipWaiting(); // Force wait to skip, activate immediately
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
@@ -32,29 +34,33 @@ self.addEventListener('activate', event => {
       );
     })
   );
+  // Take control of all clients immediately
   self.clients.claim();
 });
 
 self.addEventListener('fetch', event => {
-  // Navigation strategy: Cache First for index.html (App Shell), fallback to Network
-  // This ensures the app opens immediately even if offline or if the server path is tricky
+  // Handle navigation requests (e.g. opening the app) separately
+  // This ensures the App Shell (index.html) is always returned for the root,
+  // preventing "new tab" behavior caused by server-side routing mismatches.
   if (event.request.mode === 'navigate') {
     event.respondWith(
       caches.match('index.html').then(response => {
-        return response || fetch(event.request).catch(() => {
-          // If network also fails, try root
-          return caches.match('./');
-        });
+        return response || fetch(event.request);
+      }).catch(() => {
+        return fetch(event.request);
       })
     );
     return;
   }
 
-  // Stale-while-revalidate for other assets could be better, but Cache First is safer for static apps
   event.respondWith(
     caches.match(event.request)
       .then(response => {
-        return response || fetch(event.request);
+        // Cache hit - return response
+        if (response) {
+          return response;
+        }
+        return fetch(event.request);
       })
   );
 });
