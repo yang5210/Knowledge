@@ -1,11 +1,12 @@
-const CACHE_NAME = 'yellow-river-v2';
+const CACHE_NAME = 'yellow-river-v3';
 const urlsToCache = [
-  '/',
-  '/index.html',
-  '/index.tsx',
-  '/manifest.json',
-  '/icon-192x192.png',
-  '/icon-512x512.png',
+  './',
+  './index.html',
+  './index.tsx',
+  './manifest.json',
+  './icon.svg',
+  './icon-192x192.png',
+  './icon-512x512.png',
   'https://cdn.tailwindcss.com'
 ];
 
@@ -15,7 +16,7 @@ self.addEventListener('install', event => {
     caches.open(CACHE_NAME)
       .then(cache => {
         console.log('Opened cache');
-        return cache.addAll(urlsToCache);
+        return cache.addAll(urlsToCache.map(url => new Request(url, {mode: 'no-cors'})));
       })
   );
   // Force the waiting service worker to become the active service worker
