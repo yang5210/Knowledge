@@ -8,18 +8,12 @@
     <title>黄河知识 400 问</title>
     
     <!-- PWA Manifest -->
-    <link rel="manifest" href="manifest.json">
+    <link rel="manifest" href="/manifest.json">
     
-    <!-- Icons -->
-    <link rel="icon" type="image/svg+xml" href="icon.svg">
-    <!-- Note: iOS usually requires PNG, but using SVG here prevents broken link if PNG is missing -->
-    <link rel="apple-touch-icon" href="icon.svg">
-
-    <!-- Mobile App Capable -->
+    <!-- iOS Support -->
+    <link rel="apple-touch-icon" href="/icon-192x192.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="黄河知识">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -76,11 +70,11 @@
 </head>
   <body class="bg-yellow-50 text-gray-800 antialiased selection:bg-yellow-200 selection:text-yellow-900 overscroll-none">
     <div id="root"></div>
-    <script type="module" src="index.tsx"></script>
+    <script type="module" src="/index.tsx"></script>
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('sw.js')
+          navigator.serviceWorker.register('/sw.js')
             .then(registration => {
               console.log('SW registered: ', registration);
             })

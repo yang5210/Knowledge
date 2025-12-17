@@ -1,22 +1,25 @@
-const CACHE_NAME = 'yellow-river-v5';
+const CACHE_NAME = 'yellow-river-v2';
 const urlsToCache = [
-  '.',
-  'index.html',
-  'index.tsx',
-  'manifest.json',
-  'icon.svg',
+  '/',
+  '/index.html',
+  '/index.tsx',
+  '/manifest.json',
+  '/icon-192x192.png',
+  '/icon-512x512.png',
   'https://cdn.tailwindcss.com'
 ];
 
 self.addEventListener('install', event => {
-  self.skipWaiting(); // Force activate immediately
+  // Perform install steps
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
         console.log('Opened cache');
-        return cache.addAll(urlsToCache.map(url => new Request(url, {mode: 'no-cors'})));
+        return cache.addAll(urlsToCache);
       })
   );
+  // Force the waiting service worker to become the active service worker
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', event => {
@@ -32,31 +35,15 @@ self.addEventListener('activate', event => {
       );
     })
   );
-  self.clients.claim(); // Take control immediately
+  // Take control of all clients immediately
+  self.clients.claim();
 });
 
 self.addEventListener('fetch', event => {
-  // Navigation requests (HTML) - Network first, fallback to cache, then fallback to index.html
-  // This fixes the "cannot open" issue by ensuring index.html is always served for the app shell
-  if (event.request.mode === 'navigate') {
-    event.respondWith(
-      fetch(event.request)
-        .catch(() => {
-          return caches.match('index.html')
-            .then(response => {
-              if (response) return response;
-              // If index.html isn't matched directly, try the root
-              return caches.match('.');
-            });
-        })
-    );
-    return;
-  }
-
-  // Static assets - Cache first
   event.respondWith(
     caches.match(event.request)
       .then(response => {
+        // Cache hit - return response
         if (response) {
           return response;
         }
