@@ -1,24 +1,25 @@
-const CACHE_NAME = 'yellow-river-v3';
+const CACHE_NAME = 'yellow-river-v2';
 const urlsToCache = [
-  '.',
-  'index.html',
-  'index.tsx',
-  'manifest.json',
-  'icon-192x192.png',
-  'icon-512x512.png',
+  '/',
+  '/index.html',
+  '/index.tsx',
+  '/manifest.json',
+  '/icon-192x192.png',
+  '/icon-512x512.png',
   'https://cdn.tailwindcss.com'
 ];
 
 self.addEventListener('install', event => {
   // Perform install steps
-  self.skipWaiting(); // Force wait to skip, activate immediately
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
         console.log('Opened cache');
-        return cache.addAll(urlsToCache.map(url => new Request(url, {mode: 'no-cors'})));
+        return cache.addAll(urlsToCache);
       })
   );
+  // Force the waiting service worker to become the active service worker
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', event => {
@@ -39,20 +40,6 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-  // Handle navigation requests (e.g. opening the app) separately
-  // This ensures the App Shell (index.html) is always returned for the root,
-  // preventing "new tab" behavior caused by server-side routing mismatches.
-  if (event.request.mode === 'navigate') {
-    event.respondWith(
-      caches.match('index.html').then(response => {
-        return response || fetch(event.request);
-      }).catch(() => {
-        return fetch(event.request);
-      })
-    );
-    return;
-  }
-
   event.respondWith(
     caches.match(event.request)
       .then(response => {
