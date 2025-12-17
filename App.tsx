@@ -9,6 +9,11 @@ const App = () => {
   const [currentSectionId, setCurrentSectionId] = useState<string | undefined>(undefined);
   const [quizOrder, setQuizOrder] = useState<QuizOrder>(QuizOrder.SEQUENTIAL);
   
+  // PWA Install State
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
+  const [showIOSHint, setShowIOSHint] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(false);
+
   // State for bookmarks (Set of unique IDs string)
   const [bookmarks, setBookmarks] = useState<Set<string>>(() => {
     try {
@@ -28,6 +33,44 @@ const App = () => {
       console.error("Failed to save bookmarks", e);
     }
   }, [bookmarks]);
+
+  // PWA Installation Logic
+  useEffect(() => {
+    // Check if already in standalone mode
+    const isInStandaloneMode = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
+    setIsStandalone(isInStandaloneMode);
+
+    // Handle Android/Desktop install prompt
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    // Detect iOS to show manual guide (since iOS doesn't fire beforeinstallprompt)
+    const userAgent = window.navigator.userAgent.toLowerCase();
+    const isIOS = /iphone|ipad|ipod/.test(userAgent);
+    
+    if (isIOS && !isInStandaloneMode) {
+      // Show hint after a short delay to not annoy immediately
+      const timer = setTimeout(() => setShowIOSHint(true), 3000);
+      return () => clearTimeout(timer);
+    }
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    const { outcome } = await installPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setInstallPrompt(null);
+    }
+  };
 
   // Flatten all data and inject sectionId for easier global lookup
   const allQuestions = useMemo(() => {
@@ -70,7 +113,7 @@ const App = () => {
   };
 
   return (
-    <div className="min-h-[100dvh] bg-yellow-50 font-sans text-gray-900 pt-safe pb-safe">
+    <div className="min-h-[100dvh] bg-yellow-50 font-sans text-gray-900 pt-safe pb-safe relative">
       {mode === AppMode.HOME ? (
         <div className="max-w-4xl mx-auto px-4 py-6 md:py-8">
           <header className="text-center mb-6 md:mb-10">
@@ -140,9 +183,60 @@ const App = () => {
             ))}
           </div>
 
-          <footer className="mt-4 text-center text-xs text-gray-400 pb-safe">
+          <footer className="mt-4 text-center text-xs text-gray-400 pb-20">
             <p>© 2023 Knowledge App. Based on Provided PDF Material.</p>
           </footer>
+
+          {/* PWA Install Prompts */}
+          {!isStandalone && (
+            <>
+              {/* Android/Desktop Install Button */}
+              {installPrompt && (
+                <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-yellow-200 p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-50 pb-safe animate-slideUp">
+                  <div className="max-w-4xl mx-auto flex items-center justify-between">
+                    <div className="flex items-center">
+                      <div className="bg-yellow-100 p-2 rounded-lg mr-3">
+                        <span className="text-xl">🌊</span>
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-gray-800 text-sm">安装黄河知识助手</h3>
+                        <p className="text-xs text-gray-500">添加到主屏幕，离线也能用</p>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={handleInstallClick}
+                      className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-md active:scale-95 transition-all"
+                    >
+                      安装应用
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* iOS Install Hint */}
+              {showIOSHint && (
+                <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-yellow-200 p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-50 pb-safe animate-slideUp">
+                  <div className="max-w-4xl mx-auto relative pr-8">
+                    <button 
+                      onClick={() => setShowIOSHint(false)}
+                      className="absolute top-0 right-0 text-gray-400 hover:text-gray-600 p-1"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                    <div className="flex items-start">
+                      <div className="text-2xl mr-3">📲</div>
+                      <div>
+                        <h3 className="font-bold text-gray-800 text-sm mb-1">添加到主屏幕</h3>
+                        <p className="text-xs text-gray-600 leading-relaxed">
+                          为了获得全屏和离线体验，请点击浏览器底部的 <span className="font-bold text-blue-600">分享</span> 按钮，然后选择 <span className="font-bold text-gray-800">“添加到主屏幕”</span>。
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </div>
       ) : (
         <QuizMode 
